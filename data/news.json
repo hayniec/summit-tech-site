@@ -1,18 +1,11 @@
 [
   {
-    "id": "news-1784861358813",
-    "title": "New Defense Contract Award",
-    "date": "July 2026",
-    "isoDate": "2026-07-24",
-    "category": "Contract Awards",
-    "summary": "Summit Technologies was awarded a new defense training contract."
-  },
-  {
     "id": "news-1784850001",
     "title": "Summit Technologies Achieves CMMC Level 2 Certification",
     "date": "July 2026",
     "isoDate": "2026-07-01",
     "category": "Certifications",
+    "status": "published",
     "summary": "Summit Technologies has completed formal CMMC Level 2 assessment, verifying robust cybersecurity practices across all corporate systems handling CUI."
   },
   {
@@ -21,6 +14,7 @@
     "date": "March 2026",
     "isoDate": "2026-03-15",
     "category": "Contract Awards",
+    "status": "published",
     "summary": "Awarded a multi-year effort to provide specialized instruction, exercise emulation, and mobile training team support for defense readiness programs."
   },
   {
@@ -29,6 +23,7 @@
     "date": "January 2026",
     "isoDate": "2026-01-10",
     "category": "Announcements",
+    "status": "published",
     "summary": "Celebrating over three decades of unbroken contract support to the U.S. Armed Forces, federal civilian agencies, and commercial industry partners."
   }
 ]

@@ -237,7 +237,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const newsItems = await response.json();
       if (!Array.isArray(newsItems) || newsItems.length === 0) return;
 
-      newsContainer.innerHTML = newsItems.map(item => `
+      // Only display published articles (hide archived)
+      const activeItems = newsItems.filter(item => item.status !== 'archived');
+      if (activeItems.length === 0) return;
+
+      newsContainer.innerHTML = activeItems.map(item => `
         <article class="news-card">
           <div class="news-date">${escapeHTML(item.date)}</div>
           <h3>${escapeHTML(item.title)}</h3>

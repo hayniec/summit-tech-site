@@ -66,6 +66,7 @@ if ($is_authenticated && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['
             'date' => htmlspecialchars($date, ENT_QUOTES, 'UTF-8'),
             'isoDate' => date('Y-m-d'),
             'category' => htmlspecialchars($category, ENT_QUOTES, 'UTF-8'),
+            'status' => 'published',
             'summary' => htmlspecialchars($summary, ENT_QUOTES, 'UTF-8')
         ];
         array_unshift($news_list, $new_item);
@@ -76,15 +77,30 @@ if ($is_authenticated && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['
     }
 }
 
-// Handle Delete Article (Authenticated)
-if ($is_authenticated && isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
-    $delete_id = $_GET['id'];
+// Handle Archive / Restore / Delete (Authenticated)
+if ($is_authenticated && isset($_GET['action']) && isset($_GET['id'])) {
+    $target_id = $_GET['id'];
     $news_list = get_news_list();
-    $news_list = array_filter($news_list, function($item) use ($delete_id) {
-        return $item['id'] !== $delete_id;
-    });
-    save_news_list(array_values($news_list));
-    $message = 'Article removed successfully.';
+
+    if ($_GET['action'] === 'archive') {
+        foreach ($news_list as &$item) {
+            if ($item['id'] === $target_id) $item['status'] = 'archived';
+        }
+        save_news_list($news_list);
+        $message = 'Article moved to archive.';
+    } elseif ($_GET['action'] === 'restore') {
+        foreach ($news_list as &$item) {
+            if ($item['id'] === $target_id) $item['status'] = 'published';
+        }
+        save_news_list($news_list);
+        $message = 'Article restored to live site.';
+    } elseif ($_GET['action'] === 'delete') {
+        $news_list = array_filter($news_list, function($item) use ($target_id) {
+            return $item['id'] !== $target_id;
+        });
+        save_news_list(array_values($news_list));
+        $message = 'Article permanently deleted.';
+    }
 }
 
 $news_items = $is_authenticated ? get_news_list() : [];
@@ -100,8 +116,8 @@ $news_items = $is_authenticated ? get_news_list() : [];
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
-        body { background: #f8fafc; color: #0f172a; padding-bottom: 60px; }
-        .admin-container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        body { background: #f8fafc; color: #0f172a; padding-bottom: 60px; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .admin-container { max-width: 850px; margin: 40px auto; padding: 0 20px; }
         .admin-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); margin-bottom: 32px; }
         .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; }
         .admin-header h1 { font-size: 24px; font-weight: 800; color: #0f172a; }
@@ -111,8 +127,16 @@ $news_items = $is_authenticated ? get_news_list() : [];
         .news-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
         .news-table th, .news-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
         .news-table th { background: #f1f5f9; font-weight: 700; color: #475569; }
-        .btn-delete { color: #dc2626; font-weight: 600; text-decoration: none; padding: 4px 8px; border-radius: 4px; background: #fee2e2; }
+        .btn-action { font-weight: 600; text-decoration: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; display: inline-block; margin-right: 4px; }
+        .btn-archive { background: #fef3c7; color: #b45309; }
+        .btn-archive:hover { background: #fde68a; }
+        .btn-restore { background: #dcfce7; color: #15803d; }
+        .btn-restore:hover { background: #bbf7d0; }
+        .btn-delete { color: #dc2626; background: #fee2e2; }
         .btn-delete:hover { background: #fca5a5; }
+        .badge-status { font-size: 11px; padding: 2px 8px; font-weight: 700; border-radius: 99px; text-transform: uppercase; }
+        .badge-published { background: #dcfce7; color: #15803d; }
+        .badge-archived { background: #f1f5f9; color: #64748b; }
     </style>
 </head>
 <body>
@@ -147,7 +171,7 @@ $news_items = $is_authenticated ? get_news_list() : [];
         <div class="admin-header">
             <div>
                 <h1>Manage Summit News</h1>
-                <p style="font-size: 14px; color: #64748b;">Publish and manage news articles on the live site</p>
+                <p style="font-size: 14px; color: #64748b;">Publish, archive, or remove news articles</p>
             </div>
             <div>
                 <a href="admin-news.php?action=logout" class="btn btn-outline-dark" style="font-size: 13px; padding: 6px 14px;">Log Out</a>
@@ -199,9 +223,9 @@ $news_items = $is_authenticated ? get_news_list() : [];
             </form>
         </div>
 
-        <!-- EXISTING ARTICLES LIST -->
+        <!-- MANAGED ARTICLES LIST -->
         <div class="admin-card">
-            <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Published Articles (<?php echo count($news_items); ?>)</h2>
+            <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">All Articles (<?php echo count($news_items); ?>)</h2>
             <?php if (empty($news_items)): ?>
                 <p style="font-size: 14px; color: #64748b;">No articles found.</p>
             <?php else: ?>
@@ -209,19 +233,30 @@ $news_items = $is_authenticated ? get_news_list() : [];
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Category</th>
+                            <th>Status</th>
                             <th>Title</th>
-                            <th>Action</th>
+                            <th style="width: 170px;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($news_items as $item): ?>
+                        <?php foreach ($news_items as $item): 
+                            $is_archived = ($item['status'] ?? 'published') === 'archived';
+                        ?>
                             <tr>
                                 <td><strong><?php echo htmlspecialchars($item['date']); ?></strong></td>
-                                <td><span style="font-size: 11px; padding: 2px 8px; background: #dbeafe; color: #2563eb; font-weight: 700; border-radius: 99px; text-transform: uppercase;"><?php echo htmlspecialchars($item['category'] ?? 'News'); ?></span></td>
+                                <td>
+                                    <span class="badge-status <?php echo $is_archived ? 'badge-archived' : 'badge-published'; ?>">
+                                        <?php echo $is_archived ? 'Archived' : 'Live'; ?>
+                                    </span>
+                                </td>
                                 <td><?php echo htmlspecialchars($item['title']); ?></td>
                                 <td>
-                                    <a href="admin-news.php?action=delete&id=<?php echo urlencode($item['id']); ?>" class="btn-delete" onclick="return confirm('Are you sure you want to delete this article?');">Delete</a>
+                                    <?php if ($is_archived): ?>
+                                        <a href="admin-news.php?action=restore&id=<?php echo urlencode($item['id']); ?>" class="btn-action btn-restore">Restore</a>
+                                    <?php else: ?>
+                                        <a href="admin-news.php?action=archive&id=<?php echo urlencode($item['id']); ?>" class="btn-action btn-archive">Archive</a>
+                                    <?php endif; ?>
+                                    <a href="admin-news.php?action=delete&id=<?php echo urlencode($item['id']); ?>" class="btn-action btn-delete" onclick="return confirm('Permanently delete this article?');">Delete</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

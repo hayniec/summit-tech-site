@@ -82,6 +82,7 @@ const server = http.createServer((req, res) => {
             date: date,
             isoDate: new Date().toISOString().split('T')[0],
             category: category,
+            status: 'published',
             summary: summary
           });
           saveNews(currentNews);
@@ -96,7 +97,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Handle Admin News GET (Render Admin Dashboard or Delete)
+  // Handle Admin News GET (Render Admin Dashboard, Archive, Restore, or Delete)
   if (pathname === '/admin-news.php') {
     const cookies = querystring.parse(req.headers.cookie, '; ');
     const isAuthenticated = cookies.summit_auth === '1' || parsedUrl.query.auth === '1';
@@ -107,19 +108,38 @@ const server = http.createServer((req, res) => {
       return res.end();
     }
 
-    // Handle Delete
-    if (isAuthenticated && parsedUrl.query.action === 'delete' && parsedUrl.query.id) {
-      const deleteId = parsedUrl.query.id;
+    // Handle Actions: Archive, Restore, Delete
+    if (isAuthenticated && parsedUrl.query.id && parsedUrl.query.action) {
+      const targetId = parsedUrl.query.id;
       let currentNews = getNews();
-      currentNews = currentNews.filter(item => item.id !== deleteId);
-      saveNews(currentNews);
-      res.writeHead(302, { 'Location': '/admin-news.php?msg=deleted' });
-      return res.end();
+
+      if (parsedUrl.query.action === 'archive') {
+        currentNews.forEach(item => { if (item.id === targetId) item.status = 'archived'; });
+        saveNews(currentNews);
+        res.writeHead(302, { 'Location': '/admin-news.php?msg=archived' });
+        return res.end();
+      }
+
+      if (parsedUrl.query.action === 'restore') {
+        currentNews.forEach(item => { if (item.id === targetId) item.status = 'published'; });
+        saveNews(currentNews);
+        res.writeHead(302, { 'Location': '/admin-news.php?msg=restored' });
+        return res.end();
+      }
+
+      if (parsedUrl.query.action === 'delete') {
+        currentNews = currentNews.filter(item => item.id !== targetId);
+        saveNews(currentNews);
+        res.writeHead(302, { 'Location': '/admin-news.php?msg=deleted' });
+        return res.end();
+      }
     }
 
     let msg = '';
     if (parsedUrl.query.msg === 'added') msg = 'Article published successfully!';
-    if (parsedUrl.query.msg === 'deleted') msg = 'Article removed successfully.';
+    if (parsedUrl.query.msg === 'archived') msg = 'Article moved to archive.';
+    if (parsedUrl.query.msg === 'restored') msg = 'Article restored to live site.';
+    if (parsedUrl.query.msg === 'deleted') msg = 'Article permanently deleted.';
 
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     return res.end(renderAdminHTML(isAuthenticated, '', msg));
@@ -152,7 +172,7 @@ function renderAdminHTML(authenticated, error = '', message = '') {
     <link rel="stylesheet" href="styles.css">
     <style>
         body { background: #f8fafc; color: #0f172a; padding-bottom: 60px; font-family: 'Plus Jakarta Sans', sans-serif; }
-        .admin-container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        .admin-container { max-width: 850px; margin: 40px auto; padding: 0 20px; }
         .admin-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); margin-bottom: 32px; }
         .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; }
         .admin-header h1 { font-size: 24px; font-weight: 800; color: #0f172a; }
@@ -162,8 +182,16 @@ function renderAdminHTML(authenticated, error = '', message = '') {
         .news-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
         .news-table th, .news-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
         .news-table th { background: #f1f5f9; font-weight: 700; color: #475569; }
-        .btn-delete { color: #dc2626; font-weight: 600; text-decoration: none; padding: 4px 8px; border-radius: 4px; background: #fee2e2; }
+        .btn-action { font-weight: 600; text-decoration: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; display: inline-block; margin-right: 4px; }
+        .btn-archive { background: #fef3c7; color: #b45309; }
+        .btn-archive:hover { background: #fde68a; }
+        .btn-restore { background: #dcfce7; color: #15803d; }
+        .btn-restore:hover { background: #bbf7d0; }
+        .btn-delete { color: #dc2626; background: #fee2e2; }
         .btn-delete:hover { background: #fca5a5; }
+        .badge-status { font-size: 11px; padding: 2px 8px; font-weight: 700; border-radius: 99px; text-transform: uppercase; }
+        .badge-published { background: #dcfce7; color: #15803d; }
+        .badge-archived { background: #f1f5f9; color: #64748b; }
     </style>
 </head>
 <body>
@@ -193,7 +221,7 @@ function renderAdminHTML(authenticated, error = '', message = '') {
         <div class="admin-header">
             <div>
                 <h1>Manage Summit News</h1>
-                <p style="font-size: 14px; color: #64748b;">Publish and manage news articles on the live site</p>
+                <p style="font-size: 14px; color: #64748b;">Publish, archive, or remove news articles</p>
             </div>
             <div>
                 <a href="admin-news.php?action=logout" class="btn btn-outline-dark" style="font-size: 13px; padding: 6px 14px;">Log Out</a>
@@ -241,9 +269,9 @@ function renderAdminHTML(authenticated, error = '', message = '') {
             </form>
         </div>
 
-        <!-- EXISTING ARTICLES LIST -->
+        <!-- MANAGED ARTICLES LIST -->
         <div class="admin-card">
-            <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Published Articles (${newsList.length})</h2>
+            <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">All Articles (${newsList.length})</h2>
             ${newsList.length === 0 ? `
                 <p style="font-size: 14px; color: #64748b;">No articles found.</p>
             ` : `
@@ -251,22 +279,34 @@ function renderAdminHTML(authenticated, error = '', message = '') {
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Category</th>
+                            <th>Status</th>
                             <th>Title</th>
-                            <th>Action</th>
+                            <th style="width: 170px;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${newsList.map(item => `
+                        ${newsList.map(item => {
+                            const isArchived = (item.status || 'published') === 'archived';
+                            return `
                             <tr>
                                 <td><strong>${item.date}</strong></td>
-                                <td><span style="font-size: 11px; padding: 2px 8px; background: #dbeafe; color: #2563eb; font-weight: 700; border-radius: 99px; text-transform: uppercase;">${item.category || 'News'}</span></td>
+                                <td>
+                                    <span class="badge-status ${isArchived ? 'badge-archived' : 'badge-published'}">
+                                        ${isArchived ? 'Archived' : 'Live'}
+                                    </span>
+                                </td>
                                 <td>${item.title}</td>
                                 <td>
-                                    <a href="admin-news.php?action=delete&id=${encodeURIComponent(item.id)}" class="btn-delete" onclick="return confirm('Are you sure you want to delete this article?');">Delete</a>
+                                    ${isArchived ? `
+                                        <a href="admin-news.php?action=restore&id=${encodeURIComponent(item.id)}" class="btn-action btn-restore">Restore</a>
+                                    ` : `
+                                        <a href="admin-news.php?action=archive&id=${encodeURIComponent(item.id)}" class="btn-action btn-archive">Archive</a>
+                                    `}
+                                    <a href="admin-news.php?action=delete&id=${encodeURIComponent(item.id)}" class="btn-action btn-delete" onclick="return confirm('Permanently delete this article?');">Delete</a>
                                 </td>
                             </tr>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </tbody>
                 </table>
             `}
