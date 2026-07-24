@@ -226,4 +226,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ===== DYNAMIC NEWS RENDERER (ISOLATED) =====
+  async function loadDynamicNews() {
+    const newsContainer = document.querySelector('#page-news .news-grid');
+    if (!newsContainer) return;
+
+    try {
+      const response = await fetch('data/news.json?v=' + Date.now());
+      if (!response.ok) return;
+      const newsItems = await response.json();
+      if (!Array.isArray(newsItems) || newsItems.length === 0) return;
+
+      newsContainer.innerHTML = newsItems.map(item => `
+        <article class="news-card">
+          <div class="news-date">${escapeHTML(item.date)}</div>
+          <h3>${escapeHTML(item.title)}</h3>
+          <p>${escapeHTML(item.summary)}</p>
+        </article>
+      `).join('');
+    } catch (e) {
+      // Keep static fallback if fetch is unavailable
+    }
+  }
+
+  function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/[&<>'"]/g, 
+      tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+    );
+  }
+
+  // Load news dynamically when visiting #news or initial page load
+  loadDynamicNews();
+  window.addEventListener('hashchange', () => {
+    if (window.location.hash === '#news') {
+      loadDynamicNews();
+    }
+  });
+
 });
