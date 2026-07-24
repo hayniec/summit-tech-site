@@ -1146,7 +1146,20 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px dashed var(--border-strong);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out);
+}
+
+.staff-card:hover .staff-photo {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.staff-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .staff-photo span {
