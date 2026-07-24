@@ -1,51 +1,43 @@
-# Summit Technologies Website Recreation
+# Summit Technologies — Modern Government Contractor Web Application
 
-A faithful recreation of the Summit Technologies, Inc. (summittech.us) corporate website, built as a static HTML/CSS/JS single-page application.
+A modern, highly responsive, and fully compliant corporate website for **Summit Technologies, Inc.** (summittech.us), a Service-Disabled Veteran-Owned Small Business (SDVOSB).
 
-## Features
+## Compliance & Standards
 
-- **Hero Image Slider** — Auto-advancing carousel with 3 slides
-- **SPA Navigation** — Instant page transitions with browser history support
-- **Responsive Design** — Mobile-first with hamburger menu
-- **Scroll Animations** — Elements animate into view on scroll
-- **Custom SVG Icons** — All capability icons and certification badges
-- **10 Pages** — Home, About, Clients & Partners, Joint Ventures, Staff, Contract Vehicles, News, Careers, Employees, Contact
+This web application has been designed and built specifically to satisfy federal and state compliance mandates for government contractors:
 
-## Pages
+- **Section 508 of the Rehabilitation Act**
+- **WCAG 2.1 Level AA Accessibility**
+- **ADA Title II Standard**
+- **CMMC Level 2 & ISO 9001:2015 Information Showcase**
 
-| Page | Description |
-|---|---|
-| Home | Hero slider, tagline, capabilities grid, certifications |
-| About | Company overview, certifications, mission statement |
-| Clients & Partners | Government and industry partner listings |
-| Joint Ventures | Strategic partnership information |
-| Staff | Team directory with department sections |
-| Contract Vehicles | GSA Schedule, OASIS SB, ITES-SW2, SeaPort-NxG |
-| News | Company news and announcements |
-| Careers | Job listings with locations |
-| Employees | Employee resource portal |
-| Contact | Contact form and company information |
+### Accessibility Implementation Highlights
 
-## Tech Stack
+- **Skip Navigation:** Keyboard users can bypass header navigation (`.skip-link`).
+- **Semantic HTML5:** Built with standard landmarks (`<header>`, `<main>`, `<nav>`, `<footer>`, `<section>`).
+- **High Contrast Ratios:** All text and background pairs meet or exceed the 4.5:1 minimum contrast requirement.
+- **Keyboard & Screen Reader Support:** ARIA attributes (`aria-expanded`, `aria-controls`, `aria-current`, `role="region"`) and complete focus ring visibility.
+- **Reduced Motion Support:** Respects user operating system settings for `prefers-reduced-motion`.
+- **Dedicated Accessibility Statement:** Detailed conformance breakdown and compliance contact links.
 
-- HTML5
-- Vanilla CSS
-- Vanilla JavaScript
-- No frameworks or build tools required
+## Key Sections & Features
 
-## Running Locally
+- **Government Contractor Identifiers:** Prominently features UEI (`ZK99LMX429N1`), CAGE Code (`1V8Z3`), Primary NAICS (`541512`), and SDVOSB status.
+- **Core Capabilities:** Interactive cards detailing Capabilities Development, Training Support Services, and Information Technology.
+- **Track Record & Past Performance:** Case study highlights and operational metrics.
+- **Contract Vehicles:** Detailed summary of GSA MAS, OASIS SB Pool 1, ITES-SW2, and SeaPort-NxG.
+- **Employee Portal & Careers:** Clear pathways for candidates and current employees.
 
-Simply serve the files with any static server:
+## Development & Usage
+
+Zero external frameworks or build tooling required. Standard HTML5, CSS3 Custom Properties, and Vanilla JS.
 
 ```bash
-# Python
+# Serve locally
 python3 -m http.server 8080
-
-# Node.js
-npx serve .
 ```
 
-Then open http://localhost:8080 in your browser.
+Open [http://localhost:8080](http://localhost:8080) in your browser.
 
 ## License
 

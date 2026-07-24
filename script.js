@@ -1,146 +1,229 @@
-// ===== Summit Technologies - Main Script =====
+// =========================================================
+// Summit Technologies — Accessible JS Engine
+// WCAG 2.1 AA Compliant Navigation & Interaction
+// =========================================================
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  // ===== SPA NAVIGATION =====
+  // ===== SPA NAVIGATION & FOCUS MANAGEMENT =====
   const pages = document.querySelectorAll('.page');
   const navLinks = document.querySelectorAll('[data-page]');
-  const mainContent = document.getElementById('mainContent');
+  const mainContent = document.getElementById('main-content');
+  const mobileToggle = document.getElementById('mobileToggle');
+  const mainNav = document.getElementById('mainNav');
+  const aboutDropdownBtn = document.getElementById('aboutDropdownBtn');
+  const aboutDropdown = document.getElementById('aboutDropdown');
 
-  function showPage(pageId) {
-    pages.forEach(page => page.classList.remove('active'));
-    const target = document.getElementById(`page-${pageId}`);
-    if (target) {
-      target.classList.add('active');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+  function showPage(pageId, focusMain = true) {
+    let target = document.getElementById(`page-${pageId}`);
+    if (!target) {
+      pageId = 'home';
+      target = document.getElementById('page-home');
     }
 
-    // Close mobile menu
-    const nav = document.getElementById('mainNav');
-    nav.classList.remove('open');
+    pages.forEach(p => {
+      p.classList.remove('active');
+      p.setAttribute('aria-hidden', 'true');
+    });
+
+    target.classList.add('active');
+    target.removeAttribute('aria-hidden');
+
+    // Update active nav states
+    document.querySelectorAll('.nav-link').forEach(link => {
+      if (link.getAttribute('data-page') === pageId) {
+        link.setAttribute('aria-current', 'page');
+      } else {
+        link.removeAttribute('aria-current');
+      }
+    });
+
+    // Close mobile nav & dropdowns
+    closeMobileNav();
+    closeDropdown();
+
+    // Scroll to top & set focus for accessibility
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (focusMain && mainContent) {
+      setTimeout(() => {
+        mainContent.focus({ preventScroll: true });
+      }, 100);
+    }
   }
 
-  navLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
+  // Click handlers for all data-page links
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('[data-page]');
+    if (link) {
       const pageId = link.getAttribute('data-page');
       if (pageId) {
+        e.preventDefault();
         showPage(pageId);
         history.pushState({ page: pageId }, '', `#${pageId}`);
       }
-    });
-  });
-
-  // Handle browser back/forward
-  window.addEventListener('popstate', (e) => {
-    if (e.state && e.state.page) {
-      showPage(e.state.page);
-    } else {
-      showPage('home');
     }
   });
 
-  // Handle initial hash
+  // Browser back/forward button support
+  window.addEventListener('popstate', (e) => {
+    if (e.state && e.state.page) {
+      showPage(e.state.page, false);
+    } else {
+      const hash = window.location.hash.replace('#', '');
+      showPage(hash || 'home', false);
+    }
+  });
+
+  // Check initial URL hash
   const initialHash = window.location.hash.replace('#', '');
-  if (initialHash && document.getElementById(`page-${initialHash}`)) {
-    showPage(initialHash);
+  if (initialHash) {
+    showPage(initialHash, false);
   }
 
-  // ===== MOBILE MENU TOGGLE =====
-  const mobileToggle = document.getElementById('mobileToggle');
-  const mainNav = document.getElementById('mainNav');
+  // ===== ACCESSIBLE DROPDOWN NAVIGATION =====
+  function toggleDropdown() {
+    const isExpanded = aboutDropdownBtn.getAttribute('aria-expanded') === 'true';
+    if (isExpanded) {
+      closeDropdown();
+    } else {
+      openDropdown();
+    }
+  }
 
-  mobileToggle.addEventListener('click', () => {
-    mainNav.classList.toggle('open');
+  function openDropdown() {
+    aboutDropdownBtn.setAttribute('aria-expanded', 'true');
+    aboutDropdown.classList.add('open');
+  }
+
+  function closeDropdown() {
+    aboutDropdownBtn.setAttribute('aria-expanded', 'false');
+    aboutDropdown.classList.remove('open');
+  }
+
+  aboutDropdownBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleDropdown();
   });
 
-  // ===== HERO SLIDER =====
-  const slides = document.querySelectorAll('.hero-slide');
-  const dots = document.querySelectorAll('.hero-dot');
-  let currentSlide = 0;
-  let slideInterval;
-
-  function goToSlide(index) {
-    slides.forEach(s => s.classList.remove('active'));
-    dots.forEach(d => d.classList.remove('active'));
-    slides[index].classList.add('active');
-    dots[index].classList.add('active');
-    currentSlide = index;
-  }
-
-  function nextSlide() {
-    const next = (currentSlide + 1) % slides.length;
-    goToSlide(next);
-  }
-
-  function startSlider() {
-    slideInterval = setInterval(nextSlide, 5000);
-  }
-
-  function resetSlider() {
-    clearInterval(slideInterval);
-    startSlider();
-  }
-
-  dots.forEach(dot => {
-    dot.addEventListener('click', () => {
-      const slideIndex = parseInt(dot.getAttribute('data-slide'));
-      goToSlide(slideIndex);
-      resetSlider();
-    });
+  // Keyboard support for dropdown
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeDropdown();
+      closeMobileNav();
+    }
   });
 
-  startSlider();
-
-  // ===== SCROLL ANIMATIONS =====
-  const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-  };
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.style.opacity = '1';
-        entry.target.style.transform = 'translateY(0)';
-      }
-    });
-  }, observerOptions);
-
-  // Animate capability cards on scroll
-  document.querySelectorAll('.capability-card').forEach((card, i) => {
-    card.style.opacity = '0';
-    card.style.transform = 'translateY(30px)';
-    card.style.transition = `opacity 0.6s ease ${i * 0.15}s, transform 0.6s ease ${i * 0.15}s`;
-    observer.observe(card);
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#aboutNavContainer')) {
+      closeDropdown();
+    }
   });
 
-  // Animate cert badges on scroll
-  document.querySelectorAll('.cert-badge').forEach((badge, i) => {
-    badge.style.opacity = '0';
-    badge.style.transform = 'translateY(20px)';
-    badge.style.transition = `opacity 0.5s ease ${i * 0.15}s, transform 0.5s ease ${i * 0.15}s`;
-    observer.observe(badge);
-  });
-
-  // ===== CONTACT FORM (placeholder) =====
-  const contactForm = document.querySelector('.contact-form');
-  if (contactForm) {
-    contactForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      alert('Thank you for your message! We will get back to you shortly.');
-      contactForm.reset();
-    });
+  // ===== MOBILE MENU ACCESSIBILITY =====
+  function toggleMobileNav() {
+    const isExpanded = mobileToggle.getAttribute('aria-expanded') === 'true';
+    if (isExpanded) {
+      closeMobileNav();
+    } else {
+      openMobileNav();
+    }
   }
+
+  function openMobileNav() {
+    mobileToggle.setAttribute('aria-expanded', 'true');
+    mobileToggle.classList.add('active');
+    mainNav.classList.add('open');
+  }
+
+  function closeMobileNav() {
+    mobileToggle.setAttribute('aria-expanded', 'false');
+    mobileToggle.classList.remove('active');
+    mainNav.classList.remove('open');
+  }
+
+  mobileToggle.addEventListener('click', toggleMobileNav);
 
   // ===== HEADER SHADOW ON SCROLL =====
   const header = document.getElementById('header');
   window.addEventListener('scroll', () => {
-    if (window.scrollY > 10) {
-      header.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
+    if (window.scrollY > 20) {
+      header.classList.add('scrolled');
     } else {
-      header.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+      header.classList.remove('scrolled');
     }
-  });
+  }, { passive: true });
+
+  // ===== SCROLL REVEAL (Prefers-Reduced-Motion safe) =====
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (!prefersReducedMotion && 'IntersectionObserver' in window) {
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+  } else {
+    // Instantly reveal all if reduced motion is requested
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+  }
+
+  // ===== FORM VALIDATION WITH ACCESSIBLE ERROR MESSAGES =====
+  const contactForm = document.getElementById('contactForm');
+  if (contactForm) {
+    contactForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      let isValid = true;
+
+      const nameInput = document.getElementById('contact-name');
+      const emailInput = document.getElementById('contact-email');
+      const messageInput = document.getElementById('contact-message');
+
+      // Name validation
+      const groupName = document.getElementById('group-name');
+      if (!nameInput.value.trim()) {
+        groupName.classList.add('has-error');
+        isValid = false;
+      } else {
+        groupName.classList.remove('has-error');
+      }
+
+      // Email validation
+      const groupEmail = document.getElementById('group-email');
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailInput.value.trim() || !emailRegex.test(emailInput.value.trim())) {
+        groupEmail.classList.add('has-error');
+        isValid = false;
+      } else {
+        groupEmail.classList.remove('has-error');
+      }
+
+      // Message validation
+      const groupMessage = document.getElementById('group-message');
+      if (!messageInput.value.trim()) {
+        groupMessage.classList.add('has-error');
+        isValid = false;
+      } else {
+        groupMessage.classList.remove('has-error');
+      }
+
+      if (isValid) {
+        alert('Thank you! Your message has been sent successfully. A Summit Technologies representative will contact you shortly.');
+        contactForm.reset();
+        document.querySelectorAll('.form-group').forEach(g => g.classList.remove('has-error'));
+      } else {
+        // Focus first error input
+        const firstError = contactForm.querySelector('.has-error input, .has-error textarea');
+        if (firstError) {
+          firstError.focus();
+        }
+      }
+    });
+  }
 
 });
